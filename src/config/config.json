@@ -34,14 +34,14 @@
   "metadata": {
     "meta_author": "Themefisher",
     "meta_image": "/images/og-image.png",
-    "meta_description": "Shopify Storefront Boilerplate"
+    "meta_description": "WordPress WooCommerce Storefront Boilerplate"
   },
 
-  "shopify": {
-    "currencySymbol": "৳",
-    "currencyCode": "BDT",
+  "woocommerce": {
+    "currencySymbol": "$",
+    "currencyCode": "USD",
     "collections": {
-      "hero_slider": "hidden-homepage-carousel",
+      "hero_slider": "featured",
       "featured_products": "featured-products"
     }
   }

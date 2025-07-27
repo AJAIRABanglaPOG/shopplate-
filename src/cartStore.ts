@@ -1,18 +1,18 @@
 import { atom, computed } from "nanostores";
 import Cookies from "js-cookie";
-import { getCart } from "@/lib/shopify";
+import { getCart } from "@/lib/wordpress";
 import {
   addItem,
   removeItem,
   updateItemQuantity,
 } from "@/lib/utils/cartActions";
-import type { Cart } from "@/lib/shopify/types";
+import type { Cart } from "@/lib/wordpress/types";
 
 // Atom to hold the cart state
 export const cart = atom<Cart | null>(null);
 
 // Computed store for total quantity in the cart
-export const totalQuantity = computed(cart, (c) => (c ? c.totalQuantity : 0));
+export const totalQuantity = computed(cart, (c) => (c ? c.item_count : 0));
 
 // Atom to manage the layout view state (card or list)
 export const layoutView = atom<"card" | "list">("card");
@@ -29,17 +29,14 @@ export function getLayoutView() {
 
 // Update cart state in the store
 export async function refreshCartState() {
-  const cartId = Cookies.get("cartId");
-  if (cartId) {
-    const currentCart = await getCart(cartId);
-    cart.set(currentCart as any);
-  }
+  const currentCart = await getCart();
+  cart.set(currentCart as any);
 }
 
 // Add item to the cart and update state
-export async function addItemToCart(selectedVariantId: string) {
+export async function addItemToCart(productId: number, quantity: number = 1) {
   try {
-    await addItem(selectedVariantId);
+    await addItem(productId, quantity);
     await refreshCartState();
     return "Added to cart";
   } catch (error: any) {
@@ -48,9 +45,9 @@ export async function addItemToCart(selectedVariantId: string) {
 }
 
 // Remove item from the cart and update state
-export async function removeItemFromCart(lineId: string) {
+export async function removeItemFromCart(itemKey: string) {
   try {
-    await removeItem(lineId);
+    await removeItem(itemKey);
     await refreshCartState();
     return "Removed from cart";
   } catch (error: any) {
@@ -60,8 +57,7 @@ export async function removeItemFromCart(lineId: string) {
 
 // Update item quantity in the cart and update state
 export async function updateCartItemQuantity(payload: {
-  lineId: string;
-  variantId: string;
+  itemKey: string;
   quantity: number;
 }) {
   try {
