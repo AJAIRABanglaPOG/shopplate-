@@ -63,11 +63,25 @@ import type {
   userOperation,
 } from "./types";
 
-const domain = import.meta.env.PUBLIC_SHOPIFY_STORE_DOMAIN
-  ? ensureStartsWith(import.meta.env.PUBLIC_SHOPIFY_STORE_DOMAIN, "https://")
-  : "";
+// Validate environment variables
+const storeDomain = import.meta.env.PUBLIC_SHOPIFY_STORE_DOMAIN;
+const accessToken = import.meta.env.PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN;
+
+if (!storeDomain || storeDomain.includes('[your-shopify-store-subdomain]')) {
+  throw new Error(
+    'PUBLIC_SHOPIFY_STORE_DOMAIN is not configured. Please set it to your actual Shopify store domain (e.g., "your-store-name.myshopify.com") in your .env file.'
+  );
+}
+
+if (!accessToken) {
+  throw new Error(
+    'PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN is not configured. Please set it in your .env file.'
+  );
+}
+
+const domain = ensureStartsWith(storeDomain, "https://");
 const endpoint = `${domain}${SHOPIFY_GRAPHQL_API_ENDPOINT}`;
-const key = import.meta.env.PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN!;
+const key = accessToken;
 
 type ExtractVariables<T> = T extends { variables: object }
   ? T["variables"]
