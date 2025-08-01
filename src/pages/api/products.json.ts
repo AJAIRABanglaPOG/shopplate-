@@ -1,5 +1,5 @@
 import type { APIRoute } from "astro";
-import { getProducts } from "@/lib/shopify";
+import { getProducts } from "@/lib/wordpress";
 
 export const GET: APIRoute = async ({ request }) => {
   const url = new URL(request.url);
@@ -9,9 +9,9 @@ export const GET: APIRoute = async ({ request }) => {
 
   try {
     const { products, pageInfo } = await getProducts({
-      sortKey,
-      reverse,
-      cursor: cursor || undefined,
+      orderby: sortKey || 'date',
+      order: reverse ? 'asc' : 'desc',
+      page: cursor ? parseInt(cursor) : 1,
     });
 
     return new Response(JSON.stringify({ products, pageInfo }), {

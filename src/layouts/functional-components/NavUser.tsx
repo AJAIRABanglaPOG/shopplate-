@@ -1,5 +1,5 @@
-import { getUserDetails } from "@/lib/shopify";
-import type { user } from "@/lib/shopify/types";
+import { getUserDetails } from "@/lib/wordpress";
+import type { User } from "@/lib/wordpress/types";
 import Cookies from "js-cookie";
 import React, { useEffect, useState } from "react";
 import Gravatar from "react-gravatar";
@@ -12,7 +12,7 @@ export const fetchUser = async () => {
     if (!accessToken) {
       return null;
     } else {
-      const userDetails: user = await getUserDetails(accessToken);
+      const userDetails: { customer: User } = await getUserDetails(accessToken);
       const userInfo = userDetails.customer;
       return userInfo;
     }
@@ -61,7 +61,7 @@ const NavUser = ({ pathname }: { pathname: string }) => {
             <div className="leading-none max-md:hidden">
               <div className="flex items-center">
                 <p className="block text-text-dark dark:text-darkmode-text-dark text-base truncate">
-                  {user?.firstName}
+                  {user?.first_name}
                 </p>
                 <svg
                   className={`w-5 text-text-dark dark:text-darkmode-text-dark dark:hover:text-darkmode-text-primary`}

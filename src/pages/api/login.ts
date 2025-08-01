@@ -1,4 +1,4 @@
-import { getCustomerAccessToken, getUserDetails } from "@/lib/shopify";
+import { getCustomerAccessToken, getUserDetails } from "@/lib/wordpress";
 
 // Exporting the handler function for the API route
 export const POST = async ({ request }: { request: Request }) => {

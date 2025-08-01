@@ -10,17 +10,15 @@ import type {
   Product,
   User,
 } from "./types";
+import { mockProducts, mockCollections, mockCart } from "./mock-data";
 
 // WordPress/WooCommerce configuration
 const WORDPRESS_API_URL = import.meta.env.PUBLIC_WORDPRESS_API_URL || 'http://localhost/wp-json';
 const WOOCOMMERCE_CONSUMER_KEY = import.meta.env.PUBLIC_WOOCOMMERCE_CONSUMER_KEY;
 const WOOCOMMERCE_CONSUMER_SECRET = import.meta.env.PUBLIC_WOOCOMMERCE_CONSUMER_SECRET;
 
-if (!WORDPRESS_API_URL) {
-  throw new Error(
-    'PUBLIC_WORDPRESS_API_URL is not configured. Please set it to your WordPress site URL (e.g., "https://yoursite.com/wp-json") in your .env file.'
-  );
-}
+// Use mock data if WordPress API is not configured
+const USE_MOCK_DATA = !WORDPRESS_API_URL || WORDPRESS_API_URL === 'http://localhost/wp-json' || !WOOCOMMERCE_CONSUMER_KEY;
 
 // WordPress REST API fetch wrapper
 export async function wordpressFetch<T>({
@@ -34,6 +32,10 @@ export async function wordpressFetch<T>({
   body?: any;
   requireAuth?: boolean;
 }): Promise<T> {
+  if (USE_MOCK_DATA) {
+    throw new Error('Using mock data - WordPress API not configured');
+  }
+
   const url = new URL(endpoint, WORDPRESS_API_URL);
   
   // Add WooCommerce authentication for protected endpoints
@@ -77,6 +79,10 @@ export async function createCart(): Promise<Cart> {
 
 export async function getCart(): Promise<Cart> {
   try {
+    if (USE_MOCK_DATA) {
+      return mockCart;
+    }
+
     const cart = await wordpressFetch<Cart>({
       endpoint: '/wc/store/v1/cart',
     });
@@ -111,6 +117,11 @@ export async function addToCart(
   quantity: number = 1,
   variation?: any
 ): Promise<Cart> {
+  if (USE_MOCK_DATA) {
+    console.log('Mock: Adding to cart', { productId, quantity });
+    return mockCart;
+  }
+
   const body: any = {
     id: productId,
     quantity,
@@ -130,6 +141,11 @@ export async function addToCart(
 }
 
 export async function removeFromCart(itemKey: string): Promise<Cart> {
+  if (USE_MOCK_DATA) {
+    console.log('Mock: Removing from cart', { itemKey });
+    return mockCart;
+  }
+
   await wordpressFetch({
     endpoint: `/wc/store/v1/cart/remove-item`,
     method: 'POST',
@@ -143,6 +159,11 @@ export async function updateCart(
   itemKey: string,
   quantity: number
 ): Promise<Cart> {
+  if (USE_MOCK_DATA) {
+    console.log('Mock: Updating cart', { itemKey, quantity });
+    return mockCart;
+  }
+
   await wordpressFetch({
     endpoint: '/wc/store/v1/cart/update-item',
     method: 'POST',
@@ -174,6 +195,26 @@ export async function getProducts({
   min_price?: string;
   max_price?: string;
 } = {}): Promise<{ products: Product[]; pageInfo: PageInfo }> {
+  if (USE_MOCK_DATA) {
+    let filteredProducts = [...mockProducts];
+    
+    if (search) {
+      filteredProducts = filteredProducts.filter(p => 
+        p.name.toLowerCase().includes(search.toLowerCase()) ||
+        p.description.toLowerCase().includes(search.toLowerCase())
+      );
+    }
+    
+    return {
+      products: filteredProducts.slice(0, per_page),
+      pageInfo: {
+        hasNextPage: false,
+        hasPreviousPage: false,
+        endCursor: '1',
+      },
+    };
+  }
+
   const params = new URLSearchParams({
     page: page.toString(),
     per_page: per_page.toString(),
@@ -213,6 +254,10 @@ export async function getProducts({
 
 export async function getProduct(slug: string): Promise<Product | undefined> {
   try {
+    if (USE_MOCK_DATA) {
+      return mockProducts.find(p => p.slug === slug);
+    }
+
     const products = await wordpressFetch<Product[]>({
       endpoint: `/wc/v3/products?slug=${slug}`,
       requireAuth: true,
@@ -227,6 +272,10 @@ export async function getProduct(slug: string): Promise<Product | undefined> {
 
 export async function getProductRecommendations(productId: number): Promise<Product[]> {
   try {
+    if (USE_MOCK_DATA) {
+      return mockProducts.filter(p => p.id !== productId).slice(0, 4);
+    }
+
     const product = await wordpressFetch<Product>({
       endpoint: `/wc/v3/products/${productId}`,
       requireAuth: true,
@@ -264,6 +313,10 @@ export async function getProductRecommendations(productId: number): Promise<Prod
 // Collection/Category functions
 export async function getCollections(): Promise<Collection[]> {
   try {
+    if (USE_MOCK_DATA) {
+      return mockCollections;
+    }
+
     const categories = await wordpressFetch<any[]>({
       endpoint: '/wc/v3/products/categories?per_page=100',
       requireAuth: true,
@@ -298,6 +351,17 @@ export async function getCollectionProducts({
   reverse?: boolean;
   sortKey?: string;
 }): Promise<{ pageInfo: PageInfo | null; products: Product[] }> {
+  if (USE_MOCK_DATA) {
+    const filteredProducts = mockProducts.filter(p => 
+      p.categories.some(cat => cat.slug === collection)
+    );
+    
+    return {
+      pageInfo: null,
+      products: filteredProducts,
+    };
+  }
+
   try {
     const order = reverse ? 'asc' : 'desc';
     let orderby = 'date';
@@ -333,6 +397,10 @@ export async function getCollectionProducts({
 // User/Customer functions
 export async function createCustomer(input: CustomerInput): Promise<any> {
   try {
+    if (USE_MOCK_DATA) {
+      return { customer: { id: 1, email: input.email }, customerCreateErrors: [] };
+    }
+
     const customer = await wordpressFetch({
       endpoint: '/wc/v3/customers',
       method: 'POST',
@@ -359,6 +427,10 @@ export async function getCustomerAccessToken({
   email,
   password,
 }: Partial<CustomerInput>): Promise<any> {
+  if (USE_MOCK_DATA) {
+    return { token: 'mock-token', customerLoginErrors: [] };
+  }
+
   try {
     // WordPress doesn't use access tokens like Shopify
     // Instead, we'll use JWT or session-based authentication
@@ -378,6 +450,10 @@ export async function getCustomerAccessToken({
 }
 
 export async function getUserDetails(accessToken: string): Promise<{ customer: User }> {
+  if (USE_MOCK_DATA) {
+    return { customer: { id: 1, username: 'mockuser', first_name: 'Mock', last_name: 'User', email: 'mock@example.com', role: 'customer' } };
+  }
+
   try {
     const user = await wordpressFetch<User>({
       endpoint: '/wp/v2/users/me',
@@ -394,6 +470,11 @@ export async function getHighestProductPrice(): Promise<{
   amount: string;
   currencyCode: string;
 } | null> {
+  if (USE_MOCK_DATA) {
+    const highestPrice = Math.max(...mockProducts.map(p => parseFloat(p.price)));
+    return { amount: highestPrice.toString(), currencyCode: 'USD' };
+  }
+
   try {
     const products = await getProducts({
       orderby: 'price',
@@ -417,6 +498,13 @@ export async function getHighestProductPrice(): Promise<{
 }
 
 export async function getVendors(): Promise<{ vendor: string; productCount: number }[] > {
+  if (USE_MOCK_DATA) {
+    return [
+      { vendor: 'TechCorp', productCount: 5 },
+      { vendor: 'AudioMax', productCount: 3 },
+    ];
+  }
+
   // WordPress doesn't have built-in vendors, but you could use a plugin
   // For now, we'll return an empty array
   return [];
@@ -424,6 +512,10 @@ export async function getVendors(): Promise<{ vendor: string; productCount: numb
 
 export async function getMenu(handle: string): Promise<Menu[]> {
   try {
+    if (USE_MOCK_DATA) {
+      return [];
+    }
+
     const menus = await wordpressFetch<any[]>({
       endpoint: `/wp/v2/menus/${handle}`,
     });
@@ -440,6 +532,10 @@ export async function getMenu(handle: string): Promise<Menu[]> {
 
 export async function getPages(): Promise<Page[]> {
   try {
+    if (USE_MOCK_DATA) {
+      return [];
+    }
+
     return await wordpressFetch<Page[]>({
       endpoint: '/wp/v2/pages?per_page=100',
     });
@@ -451,6 +547,10 @@ export async function getPages(): Promise<Page[]> {
 
 export async function getPage(slug: string): Promise<Page | undefined> {
   try {
+    if (USE_MOCK_DATA) {
+      return undefined;
+    }
+
     const pages = await wordpressFetch<Page[]>({
       endpoint: `/wp/v2/pages?slug=${slug}`,
     });

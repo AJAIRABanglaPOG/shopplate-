@@ -1,46 +1,46 @@
 ---
 import config from "@/config/config.json";
 import { AddToCart } from "@/functional-components/cart/AddToCart";
-import type { Product } from "@/lib/shopify/types";
+import type { Product } from "@/lib/wordpress/types";
 
 interface Props {
   products: Product[];
 }
 
 const { products } = Astro.props;
-const { currencySymbol } = config.shopify;
+const { currencySymbol } = config.woocommerce;
 ---
 
 <div class="row">
   {
     products.map((product: any) => {
       const {
-        title,
-        handle,
-        featuredImage,
-        priceRange,
-        variants,
-        compareAtPriceRange,
+        name: title,
+        slug: handle,
+        images,
+        price,
+        regular_price,
+        sale_price,
       } = product;
 
-      const defaultVariantId = variants.length > 0 ? variants[0].id : undefined;
+      const featuredImage = images && images.length > 0 ? images[0] : null;
       return (
         <div class="text-center col-6 md:col-4 lg:col-3 mb-8 md:mb-14 group relative">
           <div class="relative overflow-hidden">
             <img
-              src={featuredImage.url || "/images/product_image404.jpg"}
+              src={featuredImage?.src || "/images/product_image404.jpg"}
               width={312}
               height={269}
-              alt={featuredImage.altText || "fallback image"}
+              alt={featuredImage?.alt || "fallback image"}
               class="w-[312px] h-[150px] md:h-[269px] object-cover border border-border rounded-md"
             />
 
             <AddToCart
               client:only="react"
-              variants={product.variants}
-              availableForSale={product.availableForSale}
+              variants={[]}
+              availableForSale={product.stock_status === 'instock'}
               handle={handle}
-              defaultVariantId={defaultVariantId}
+              defaultVariantId={product.id.toString()}
               stylesClass="btn btn-primary max-md:btn-sm z-10 absolute bottom-12 md:bottom-0 left-1/2 transform -translate-x-1/2 translate-y-full md:group-hover:-translate-y-6 duration-300 ease-in-out whitespace-nowrap drop-shadow-md"
             />
           </div>
@@ -56,14 +56,12 @@ const { currencySymbol } = config.shopify;
             <div class="flex flex-wrap justify-center items-center gap-x-2 mt-2 md:mt-4">
               <span class="text-base md:text-xl font-bold text-text-dark dark:text-darkmode-text-dark">
                 {currencySymbol}
-                {priceRange.minVariantPrice.amount}
-                {compareAtPriceRange?.maxVariantPrice?.currencyCode}
+                {price}
               </span>
 
-              {parseFloat(compareAtPriceRange?.maxVariantPrice.amount) > 0 && (
+              {sale_price && parseFloat(regular_price) > parseFloat(sale_price) && (
                 <s class="text-text-light dark:text-darkmode-text-light text-xs md:text-base font-medium">
-                  {currencySymbol} {compareAtPriceRange?.maxVariantPrice.amount}{" "}
-                  {compareAtPriceRange?.maxVariantPrice?.currencyCode}
+                  {currencySymbol} {regular_price}
                 </s>
               )}
             </div>

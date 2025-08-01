@@ -1,4 +1,4 @@
-import { createCustomer, getCustomerAccessToken } from "@/lib/shopify";
+import { createCustomer, getCustomerAccessToken } from "@/lib/wordpress";
 import type { APIRoute } from "astro";
 
 export const POST: APIRoute = async ({ request }) => {
@@ -12,11 +12,11 @@ export const POST: APIRoute = async ({ request }) => {
       return new Response("Email and password are required", { status: 400 });
     }
 
-    // Create customer via Shopify API
+    // Create customer via WordPress API
     const { customer, customerCreateErrors } = await createCustomer({
       email,
       password,
-      firstName,
+      first_name: firstName,
     });
 
     if (customerCreateErrors && customerCreateErrors.length > 0) {
